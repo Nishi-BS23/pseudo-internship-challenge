@@ -10,19 +10,36 @@ class EmailProcessor:
 
     def filter_emails(self, emails: list[Email]) -> list[Email]:
         # implement filtering logic based on required keywords
-        return []
+        filtered = []
+        for email in emails:
+            subject_lower = email.subject.lower()
+            # Check if all required keywords are present in the subject
+            if all(keyword in subject_lower for keyword in self.required_keywords):
+                filtered.append(email)
+        return filtered
 
     def extract_name_from_email(self, email_body: str) -> str | None:
+        import re
+        
         patterns = [
             r"Best regards,\s*([A-Za-z\s]+)",
             r"Sincerely,\s*([A-Za-z\s]+)",
             r"Thanks,\s*([A-Za-z\s]+)",
             r"Regards,\s*([A-Za-z\s]+)",
             r"Best,\s*([A-Za-z\s]+)",
+            r"Thank you,\s*([A-Za-z\s]+)",
+            r"Kind regards,\s*([A-Za-z\s]+)",
         ]
 
         # implement name extraction logic
-
+        for pattern in patterns:
+            match = re.search(pattern, email_body, re.IGNORECASE)
+            if match:
+                name = match.group(1).strip()
+                # Return only if name contains letters and is not empty
+                if name and re.match(r"^[A-Za-z\s]+$", name):
+                    return name
+        
         return None
 
     # Use this method. Do not modify it.
@@ -55,6 +72,26 @@ Hiring Team"""
 
         
         # implement email processing logic.
+        # Fetch all emails from the client
+        emails = self.gmail_client.fetch_emails()
+        
+        # Filter emails based on required keywords
+        filtered_emails = self.filter_emails(emails)
+        
+        # Process each filtered email and send responses
+        for email in filtered_emails:
+            # Extract name from email body
+            name = self.extract_name_from_email(email.body)
+            
+            # Generate response
+            response_body = self.generate_response(name)
+            
+            # Create reply subject
+            reply_subject = f"Re: {email.subject}"
+            
+            # Send response email
+            if self.gmail_client.send_email(email.sender, reply_subject, response_body):
+                responses_sent += 1
 
         
         
